@@ -30,7 +30,7 @@ const ResumesModal = lazy(() => import('./components/ResumesModal.jsx'));
 function App() {
   const auth = useAuth();
   const { jobs, loading, addJob, updateJob, deleteJob, importJobs, replaceAllJobs, clearResumeId } = useJobs(auth.user?.id);
-  const { resumes, loading: resumesLoading, uploadResume, renameResume, deleteResume, getDownloadUrl, linkDriveFile } = useResumes(auth.user?.id);
+  const { resumes, uploadResume, renameResume, deleteResume, getDownloadUrl, linkDriveFile } = useResumes(auth.user?.id);
   const gdrive = useGoogleDrive();
   const { toasts, showToast, dismissToast, removeToast } = useToast();
   const { dark, toggle: toggleDark } = useDarkMode();
@@ -296,12 +296,18 @@ function App() {
     );
   }
 
-  // Jobs / resumes loading
-  if (loading || resumesLoading) {
+  // Jobs loading — gate first paint on jobs only. Resumes load in the
+  // background and fill in the card indicators / pickers as they arrive
+  // (every consumer tolerates an empty resumes array). Render the full
+  // Layout shell (header + tray) so the chrome appears instantly while
+  // jobs finish, instead of a bare full-screen spinner.
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-svh bg-zinc-200 dark:bg-zinc-950">
-        <p className="text-zinc-500 dark:text-zinc-400">Loading...</p>
-      </div>
+      <Layout dark={dark} onToggleDark={toggleDark} user={auth.user} profile={auth.profile} onSignOut={auth.signOut} onSettings={() => setSettingsOpen(true)} onResumes={() => setResumesOpen(true)} showToast={showToast}>
+        <div className="flex flex-1 items-center justify-center py-16">
+          <p className="text-zinc-500 dark:text-zinc-400">Loading...</p>
+        </div>
+      </Layout>
     );
   }
 

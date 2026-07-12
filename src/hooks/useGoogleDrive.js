@@ -47,7 +47,11 @@ export default function useGoogleDrive() {
   const [loading, setLoading] = useState(true);
   const popupRef = useRef(null);
 
-  // Check connection status on mount
+  // Check connection status shortly after mount, deferred to browser-idle so
+  // it doesn't compete with first-paint data fetches on the critical
+  // initial-load path (this hits a cold-start serverless function). The
+  // picker/download flows independently re-verify the connection at point of
+  // use, so a slightly-late status here is harmless.
   useEffect(() => {
     if (!GDRIVE_ENABLED) {
       setConnected(false);
@@ -56,7 +60,7 @@ export default function useGoogleDrive() {
     }
 
     let cancelled = false;
-    (async () => {
+    const run = async () => {
       try {
         const token = await getAccessToken();
         const res = await fetch('/api/gdrive/status', {
@@ -72,8 +76,18 @@ export default function useGoogleDrive() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-    })();
-    return () => { cancelled = true; };
+    };
+
+    const useRIC = typeof window.requestIdleCallback === 'function';
+    const handle = useRIC
+      ? window.requestIdleCallback(run, { timeout: 3000 })
+      : setTimeout(run, 1200);
+
+    return () => {
+      cancelled = true;
+      if (useRIC) window.cancelIdleCallback?.(handle);
+      else clearTimeout(handle);
+    };
   }, []);
 
   const refreshStatus = useCallback(async () => {

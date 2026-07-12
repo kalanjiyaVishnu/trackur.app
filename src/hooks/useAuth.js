@@ -28,9 +28,7 @@ export default function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
-        if (session) {
-          fetchProfile();
-        } else {
+        if (!session) {
           setProfile(null);
           setProfileLoaded(false);
         }
@@ -38,9 +36,11 @@ export default function useAuth() {
     );
 
     return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+  }, []);
 
-  // Fetch profile when session is first established
+  // Fetch the profile once per session. This effect is the single trigger —
+  // onAuthStateChange only updates session state, so the profile is SELECTed
+  // exactly once on load/sign-in instead of twice.
   useEffect(() => {
     if (session && !profileLoaded) {
       fetchProfile();

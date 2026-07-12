@@ -4,6 +4,12 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Warm up the connection to the Supabase API so the first post-login
+         round-trips (session refresh, profile, jobs) skip DNS + TLS setup. -->
+    <link rel="preconnect" href="https://rdeaebhnenssadmkgfru.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://rdeaebhnenssadmkgfru.supabase.co" />
+
     <meta name="description" content="Track your job applications, interviews, and offers in one place." />
     <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
 
