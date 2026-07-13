@@ -9,6 +9,7 @@ import useResumes from './hooks/useResumes.js';
 import useGoogleDrive from './hooks/useGoogleDrive.js';
 import useNotifications from './hooks/useNotifications.js';
 import { exportJobsToCsv } from './services/csvService.js';
+import { downloadResume, downloadErrorMessage } from './utils/downloadResume.js';
 import { STAGES } from './constants.js';
 import { Button, Select } from './components/catalyst';
 import Layout from './components/Layout.jsx';
@@ -171,39 +172,9 @@ function App() {
     const resume = resumes.find((r) => r.id === job.resumeId);
     if (!resume) return;
     try {
-      const ext = resume.filename.split('.').pop();
-      const filename = resume.label ? `${resume.label}.${ext}` : resume.filename;
-
-      if (resume.source === 'gdrive') {
-        // GDrive download returns a blob URL directly from the adapter
-        const blobUrl = await getDownloadUrl(resume);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      } else {
-        // Trackur (R2) — presigned URL flow
-        const url = await getDownloadUrl(resume);
-        const resp = await fetch(url);
-        const blob = await resp.blob();
-        const objUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(objUrl);
-      }
+      await downloadResume(resume, getDownloadUrl);
     } catch (err) {
-      if (err.name === 'GDriveDisconnectedError') {
-        showToast('Google Drive disconnected. Reconnect in Settings to download this resume.', 'error');
-      } else {
-        showToast('Failed to download resume', 'error');
-      }
+      showToast(downloadErrorMessage(err), 'error');
     }
   }, [resumes, getDownloadUrl, showToast]);
 
@@ -409,6 +380,13 @@ function App() {
       {filteredJobs.length === 0 && jobs.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-zinc-500 dark:text-zinc-400 text-lg">Click "Add Job" to get started.</p>
+        </div>
+      ) : filteredJobs.length === 0 ? (
+        <div className="text-center py-16">
+          <p className="text-zinc-500 dark:text-zinc-400 text-lg">No jobs match your current search or filter.</p>
+          <Button outline onClick={() => { setSearch(''); setStageFilter(''); }} className="mt-3">
+            Clear filters
+          </Button>
         </div>
       ) : view === 'board' ? (
         <KanbanBoard jobs={filteredJobs} onUpdate={handleUpdate} onDelete={handleDeleteRequest} onEdit={handleEditRequest} onUpdateStage={handleUpdateStage} onViewResume={handleViewResumeForJob} resumes={resumes} onAddJob={openAddJob} />

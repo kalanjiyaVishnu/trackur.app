@@ -3,7 +3,7 @@ import { TrashIcon, PencilSquareIcon, ChevronUpIcon, ChevronDownIcon } from '@he
 import { STAGES, STAGE_COLORS } from '../constants.js';
 import { Badge } from './catalyst';
 import InlineEditableField from './InlineEditableField.jsx';
-import { formatDate } from '../utils/formatDate.js';
+import { formatDate, isOverdue } from '../utils/formatDate.js';
 
 const COLUMNS = [
   { key: 'role', label: 'Role' },
@@ -108,7 +108,7 @@ export default function TableView({ jobs, onUpdate, onDelete, onEdit, sortKey, s
       }
       return (
         <button type="button" onClick={() => onEdit(job.id)} className="text-left">
-          <span className="truncate block max-w-48">
+          <span className={`truncate block max-w-48 ${isOverdue(uncompleted[0]?.dueDate) ? 'text-red-600 dark:text-red-400 font-medium' : ''}`}>
             {uncompleted.length > 0 ? uncompleted[0].text : <span className="text-emerald-600 dark:text-emerald-400">All done</span>}
           </span>
           <Badge color="zinc" className="mt-0.5 text-[10px]">
@@ -155,7 +155,7 @@ export default function TableView({ jobs, onUpdate, onDelete, onEdit, sortKey, s
               return (
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400 truncate">
                   {uncompleted.length > 0
-                    ? <>Next: {uncompleted[0].text}</>
+                    ? <span className={isOverdue(uncompleted[0].dueDate) ? 'text-red-600 dark:text-red-400 font-medium' : ''}>Next: {uncompleted[0].text}</span>
                     : <span className="text-emerald-600 dark:text-emerald-400">All steps done</span>
                   }
                   {' '}<span className="text-zinc-500 dark:text-zinc-400">({todos.filter((t) => t.completed).length}/{todos.length})</span>

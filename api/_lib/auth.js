@@ -18,7 +18,10 @@ export async function verifyAuth(req) {
     return null;
   }
   try {
-    const { payload } = await jwtVerify(header.slice(7), getJWKS());
+    const { payload } = await jwtVerify(header.slice(7), getJWKS(), {
+      issuer: `${SUPABASE_URL}/auth/v1`,
+      audience: 'authenticated',
+    });
     return payload.sub ?? null;
   } catch {
     return null;

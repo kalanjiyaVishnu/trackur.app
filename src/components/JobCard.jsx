@@ -6,7 +6,7 @@ import { Badge } from './catalyst';
 import useInlineEdit from '../hooks/useInlineEdit.js';
 import InlineEditableField from './InlineEditableField.jsx';
 import ResumeSourceIcon from './ResumeSourceIcon.jsx';
-import { formatDate } from '../utils/formatDate.js';
+import { formatDate, isOverdue } from '../utils/formatDate.js';
 
 export default memo(function JobCard({ job, onUpdate, onDelete, onEdit, onDragStart, compact, onStageChange, onViewResume, resumeName, resumeSource }) {
   const { editingField, draftValue, startEdit, updateDraft, cancel, save } = useInlineEdit();
@@ -195,7 +195,7 @@ export default memo(function JobCard({ job, onUpdate, onDelete, onEdit, onDragSt
 
                     {/* Due date chip */}
                     {todo.dueDate && !isEditingTodo && (
-                      <span className="shrink-0 inline-flex items-center gap-0.5 text-zinc-600 dark:text-zinc-400">
+                      <span className={`shrink-0 inline-flex items-center gap-0.5 ${isOverdue(todo.dueDate) ? 'text-red-600 dark:text-red-400 font-medium' : 'text-zinc-600 dark:text-zinc-400'}`}>
                         <CalendarIcon className="size-3" />
                         {formatDate(todo.dueDate)}
                       </span>

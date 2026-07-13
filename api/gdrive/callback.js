@@ -1,4 +1,4 @@
-import { exchangeCodeForTokens, storeTokens } from '../_lib/google.js';
+import { exchangeCodeForTokens, storeTokens, verifyState } from '../_lib/google.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -15,13 +15,11 @@ export default async function handler(req, res) {
     return res.status(400).send(errorPage('Missing authorization code.'));
   }
 
-  let userId;
-  try {
-    const parsed = JSON.parse(state);
-    userId = parsed.userId;
-    if (!userId) throw new Error('Missing userId in state');
-  } catch {
-    return res.status(400).send(errorPage('Invalid state parameter.'));
+  // State is HMAC-signed by auth-url.js — a forged or expired state cannot
+  // bind tokens to an arbitrary userId.
+  const userId = verifyState(state);
+  if (!userId) {
+    return res.status(400).send(errorPage('Invalid or expired authorization state. Please try connecting again.'));
   }
 
   // Build the same redirect URI used during the auth-url step
@@ -41,6 +39,10 @@ export default async function handler(req, res) {
   return res.status(200).send(successPage());
 }
 
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function successPage() {
   return `<!DOCTYPE html>
 <html><head><title>Connected</title></head>
@@ -48,7 +50,7 @@ function successPage() {
 <p>Google Drive connected. This window will close automatically.</p>
 <script>
   if (window.opener) {
-    window.opener.postMessage({ type: 'gdrive-connected' }, '*');
+    window.opener.postMessage({ type: 'gdrive-connected' }, window.location.origin);
   }
   window.close();
 </script>
@@ -59,11 +61,11 @@ function errorPage(message) {
   return `<!DOCTYPE html>
 <html><head><title>Error</title></head>
 <body>
-<p>${message}</p>
+<p>${escapeHtml(message)}</p>
 <p>You can close this window and try again.</p>
 <script>
   if (window.opener) {
-    window.opener.postMessage({ type: 'gdrive-error', message: '${message}' }, '*');
+    window.opener.postMessage({ type: 'gdrive-error', message: ${JSON.stringify(message)} }, window.location.origin);
   }
 </script>
 </body></html>`;
