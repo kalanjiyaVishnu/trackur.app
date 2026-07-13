@@ -1,10 +1,11 @@
-const CSV_HEADERS = ['id', 'company', 'role', 'stage', 'dateApplied', 'todos', 'notes'];
+const CSV_HEADERS = ['id', 'company', 'role', 'stage', 'dateApplied', 'todos', 'notes', 'postingUrl'];
 
 // Legacy headers for backward-compatible import
 const LEGACY_NEXT_ACTION = 'nextAction';
 const LEGACY_NEXT_ACTION_DATE = 'nextActionDate';
 
-function escapeCsvField(value) {
+// exported for unit tests
+export function escapeCsvField(value) {
   const str = String(value ?? '');
   if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes(';')) {
     return '"' + str.replace(/"/g, '""') + '"';
@@ -12,7 +13,8 @@ function escapeCsvField(value) {
   return str;
 }
 
-function serializeTodos(todos) {
+// exported for unit tests
+export function serializeTodos(todos) {
   if (!Array.isArray(todos) || todos.length === 0) return '';
   return todos
     .map((t) => {
@@ -24,7 +26,8 @@ function serializeTodos(todos) {
     .join('; ');
 }
 
-function parseTodosFromCsv(str) {
+// exported for unit tests
+export function parseTodosFromCsv(str) {
   if (!str || !str.trim()) return [];
   return str.split(';').map((item) => {
     const trimmed = item.trim();
@@ -44,7 +47,8 @@ function parseTodosFromCsv(str) {
   }).filter((t) => t.text);
 }
 
-function parseCsvLine(line) {
+// exported for unit tests
+export function parseCsvLine(line) {
   const fields = [];
   let current = '';
   let inQuotes = false;

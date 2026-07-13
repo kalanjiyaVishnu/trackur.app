@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
-import { ArrowDownTrayIcon, ArrowUpTrayIcon, PlusIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
+import { ArrowDownTrayIcon, ArrowUpTrayIcon, PlusIcon, EllipsisVerticalIcon, ArchiveBoxIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react';
 import useJobs from './hooks/useJobs.js';
 import useToast from './hooks/useToast.js';
@@ -8,9 +8,12 @@ import useAuth from './hooks/useAuth.js';
 import useResumes from './hooks/useResumes.js';
 import useGoogleDrive from './hooks/useGoogleDrive.js';
 import useNotifications from './hooks/useNotifications.js';
+import useJobFilters from './hooks/useJobFilters.js';
+import useModals from './hooks/useModals.js';
 import { exportJobsToCsv } from './services/csvService.js';
 import { downloadResume, downloadErrorMessage } from './utils/downloadResume.js';
 import { STAGES } from './constants.js';
+import { GDriveContext } from './context/GDriveContext.js';
 import { Button, Select } from './components/catalyst';
 import Layout from './components/Layout.jsx';
 import FilterBar from './components/FilterBar.jsx';
@@ -27,6 +30,7 @@ const ImportModal = lazy(() => import('./components/ImportModal.jsx'));
 const ConfirmModal = lazy(() => import('./components/ConfirmModal.jsx'));
 const SettingsModal = lazy(() => import('./components/SettingsModal.jsx'));
 const ResumesModal = lazy(() => import('./components/ResumesModal.jsx'));
+const StatsView = lazy(() => import('./components/StatsView.jsx'));
 
 function App() {
   const auth = useAuth();
@@ -37,56 +41,31 @@ function App() {
   const { dark, toggle: toggleDark } = useDarkMode();
 
   const [view, setView] = useState(() => localStorage.getItem('viewPreference') || 'board');
-  const [search, setSearch] = useState('');
-  const [stageFilter, setStageFilter] = useState('');
-  const [sortKey, setSortKey] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tableSortPreference'))?.key || 'dateApplied'; }
-    catch { return 'dateApplied'; }
-  });
-  const [sortDir, setSortDir] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tableSortPreference'))?.dir || 'desc'; }
-    catch { return 'desc'; }
-  });
+
+  const {
+    search, setSearch,
+    stageFilter, setStageFilter,
+    dueOnly, setDueOnly,
+    showArchived, setShowArchived,
+    sortKey, sortDir, handleSort,
+    filteredJobs, dueCount, clearFilters,
+  } = useJobFilters(jobs);
+
+  const {
+    addJobOpen, setAddJobOpen, addJobInitialStage, openAddJob,
+    importOpen, setImportOpen,
+    deleteConfirm, setDeleteConfirm,
+    editingJobId, setEditingJobId,
+    settingsOpen, setSettingsOpen,
+    resumesOpen, setResumesOpen,
+  } = useModals();
 
   const handleViewChange = useCallback((v) => {
     setView(v);
     localStorage.setItem('viewPreference', v);
   }, []);
 
-  const handleSort = useCallback((key) => {
-    setSortKey((prevKey) => {
-      const newDir = prevKey === key ? (sortDir === 'asc' ? 'desc' : 'asc') : 'asc';
-      const newKey = key;
-      setSortDir(newDir);
-      localStorage.setItem('tableSortPreference', JSON.stringify({ key: newKey, dir: newDir }));
-      return newKey;
-    });
-  }, [sortDir]);
-  const [addJobOpen, setAddJobOpen] = useState(false);
-  const [addJobInitialStage, setAddJobInitialStage] = useState(null);
-  const [importOpen, setImportOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [editingJobId, setEditingJobId] = useState(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [resumesOpen, setResumesOpen] = useState(false);
-
   const { notificationsSupported, permissionState, requestPermission } = useNotifications(jobs, auth.profile);
-
-  const filteredJobs = useMemo(() => {
-    let result = jobs;
-    if (stageFilter) {
-      result = result.filter((j) => j.stage === stageFilter);
-    }
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (j) =>
-          j.company?.toLowerCase().includes(q) ||
-          j.role?.toLowerCase().includes(q)
-      );
-    }
-    return result;
-  }, [jobs, search, stageFilter]);
 
   const editingJob = useMemo(
     () => editingJobId ? jobs.find((j) => j.id === editingJobId) : null,
@@ -122,11 +101,11 @@ function App() {
 
   const handleDeleteRequest = useCallback((id) => {
     setDeleteConfirm(id);
-  }, []);
+  }, [setDeleteConfirm]);
 
   const handleEditRequest = useCallback((id) => {
     setEditingJobId(id);
-  }, []);
+  }, [setEditingJobId]);
 
   const handleDeleteConfirm = useCallback(async () => {
     if (deleteConfirm != null) {
@@ -138,7 +117,7 @@ function App() {
         showToast('Failed to delete job: ' + err.message, 'error');
       }
     }
-  }, [deleteConfirm, deleteJob, showToast]);
+  }, [deleteConfirm, deleteJob, setDeleteConfirm, showToast]);
 
   const handleExport = useCallback(() => {
     exportJobsToCsv(jobs);
@@ -214,11 +193,6 @@ function App() {
     }
   }, [gdrive, showToast]);
 
-  const openAddJob = useCallback((stage) => {
-    setAddJobInitialStage(stage || null);
-    setAddJobOpen(true);
-  }, []);
-
   const handleDisconnectGdrive = useCallback(async () => {
     try {
       await gdrive.disconnect();
@@ -227,6 +201,14 @@ function App() {
       showToast('Failed to disconnect Google Drive', 'error');
     }
   }, [gdrive, showToast]);
+
+  const gdriveCtx = useMemo(() => ({
+    enabled: gdrive.enabled,
+    connected: gdrive.connected,
+    connect: handleConnectGdrive,
+    disconnect: handleDisconnectGdrive,
+    pickFromDrive: handlePickFromDrive,
+  }), [gdrive.enabled, gdrive.connected, handleConnectGdrive, handleDisconnectGdrive, handlePickFromDrive]);
 
   // Auth loading
   if (auth.loading) {
@@ -282,21 +264,42 @@ function App() {
     );
   }
 
+  const showFilters = view !== 'stats';
+
   return (
+    <GDriveContext.Provider value={gdriveCtx}>
     <Layout dark={dark} onToggleDark={toggleDark} user={auth.user} profile={auth.profile} onSignOut={auth.signOut} onSettings={() => setSettingsOpen(true)} onResumes={() => setResumesOpen(true)} showToast={showToast}>
       {/* Toolbar */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <FilterBar
-          search={search}
-          onSearchChange={setSearch}
-          stageFilter={stageFilter}
-          onStageFilterChange={setStageFilter}
-          hideStageFilter={view === 'board'}
-          hideMobileExtras
-        />
+        {showFilters && (
+          <FilterBar
+            search={search}
+            onSearchChange={setSearch}
+            stageFilter={stageFilter}
+            onStageFilterChange={setStageFilter}
+            hideStageFilter={view === 'board'}
+            hideMobileExtras
+          />
+        )}
+
+        {showFilters && dueCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setDueOnly(!dueOnly)}
+            title={dueOnly ? 'Show all jobs' : 'Show only jobs with steps due'}
+            className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 transition-colors ${
+              dueOnly
+                ? 'bg-amber-100 text-amber-800 ring-amber-600/30 dark:bg-amber-400/20 dark:text-amber-300 dark:ring-amber-400/30'
+                : 'bg-amber-50 text-amber-700 ring-amber-600/20 hover:bg-amber-100 dark:bg-amber-400/10 dark:text-amber-400 dark:ring-amber-400/20 dark:hover:bg-amber-400/20'
+            }`}
+          >
+            <ClockIcon className="size-3.5" />
+            {dueCount} due
+          </button>
+        )}
 
         {/* Mobile overflow menu */}
-        <Popover className="relative md:hidden">
+        <Popover className="relative md:hidden ml-auto">
           <PopoverButton as={Button} plain title="More actions">
             <EllipsisVerticalIcon data-slot="icon" className="size-7!" />
           </PopoverButton>
@@ -329,6 +332,14 @@ function App() {
                 <div className="border-t border-zinc-950/5 dark:border-white/5 pt-2 flex flex-col gap-1">
                   <button
                     type="button"
+                    onClick={() => { setShowArchived(!showArchived); close(); }}
+                    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-700 hover:bg-zinc-950/5 dark:text-zinc-300 dark:hover:bg-white/5 transition-colors"
+                  >
+                    <ArchiveBoxIcon className="size-4" />
+                    {showArchived ? 'Show active jobs' : 'Show archived jobs'}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => { handleExport(); close(); }}
                     className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-700 hover:bg-zinc-950/5 dark:text-zinc-300 dark:hover:bg-white/5 transition-colors"
                   >
@@ -352,6 +363,16 @@ function App() {
         {/* Desktop actions */}
         <div className="hidden md:flex items-center gap-2 ml-auto">
           <ViewToggle view={view} onViewChange={handleViewChange} />
+          {showFilters && (
+            <Button
+              plain
+              onClick={() => setShowArchived(!showArchived)}
+              title={showArchived ? 'Show active jobs' : 'Show archived jobs'}
+              className={showArchived ? 'bg-mauve-500/10 text-mauve-700! dark:bg-mauve-500/20 dark:text-mauve-300!' : ''}
+            >
+              <ArchiveBoxIcon data-slot="icon" />
+            </Button>
+          )}
           <Button plain onClick={handleExport} title="Export CSV">
             <ArrowDownTrayIcon data-slot="icon" />
           </Button>
@@ -377,15 +398,23 @@ function App() {
         </button>
       )}
 
-      {filteredJobs.length === 0 && jobs.length === 0 ? (
+      {view === 'stats' ? (
+        <Suspense fallback={<div className="py-16 text-center text-zinc-500 dark:text-zinc-400">Loading...</div>}>
+          <StatsView jobs={jobs} />
+        </Suspense>
+      ) : filteredJobs.length === 0 && jobs.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-zinc-500 dark:text-zinc-400 text-lg">Click "Add Job" to get started.</p>
         </div>
       ) : filteredJobs.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-zinc-500 dark:text-zinc-400 text-lg">No jobs match your current search or filter.</p>
-          <Button outline onClick={() => { setSearch(''); setStageFilter(''); }} className="mt-3">
-            Clear filters
+          <p className="text-zinc-500 dark:text-zinc-400 text-lg">
+            {showArchived && !search && !stageFilter && !dueOnly
+              ? 'No archived jobs.'
+              : 'No jobs match your current search or filter.'}
+          </p>
+          <Button outline onClick={clearFilters} className="mt-3">
+            {showArchived && !search && !stageFilter && !dueOnly ? 'Back to active jobs' : 'Clear filters'}
           </Button>
         </div>
       ) : view === 'board' ? (
@@ -395,7 +424,7 @@ function App() {
       )}
 
       <Suspense fallback={null}>
-        <AddJobForm open={addJobOpen} onClose={() => setAddJobOpen(false)} onAdd={handleAdd} initialStage={addJobInitialStage} resumes={resumes} onUploadResume={uploadResume} gdriveEnabled={gdrive.enabled} gdriveConnected={gdrive.connected} onConnectGdrive={handleConnectGdrive} onPickFromDrive={handlePickFromDrive} />
+        <AddJobForm open={addJobOpen} onClose={() => setAddJobOpen(false)} onAdd={handleAdd} initialStage={addJobInitialStage} resumes={resumes} onUploadResume={uploadResume} />
 
         {editingJob && (
           <EditJobModal
@@ -407,10 +436,6 @@ function App() {
             onGetDownloadUrl={getDownloadUrl}
             onUploadResume={uploadResume}
             onManageResumes={() => setResumesOpen(true)}
-            gdriveEnabled={gdrive.enabled}
-            gdriveConnected={gdrive.connected}
-            onConnectGdrive={handleConnectGdrive}
-            onPickFromDrive={handlePickFromDrive}
           />
         )}
 
@@ -439,10 +464,6 @@ function App() {
           notificationsSupported={notificationsSupported}
           permissionState={permissionState}
           requestPermission={requestPermission}
-          gdriveEnabled={gdrive.enabled}
-          gdriveConnected={gdrive.connected}
-          onConnectGdrive={handleConnectGdrive}
-          onDisconnectGdrive={handleDisconnectGdrive}
         />
 
         <ResumesModal
@@ -453,15 +474,12 @@ function App() {
           onRenameResume={renameResume}
           onDeleteResume={handleDeleteResume}
           onGetDownloadUrl={getDownloadUrl}
-          gdriveEnabled={gdrive.enabled}
-          gdriveConnected={gdrive.connected}
-          onConnectGdrive={handleConnectGdrive}
-          onPickFromDrive={() => handlePickFromDrive(null)}
         />
       </Suspense>
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} onRemove={removeToast} />
     </Layout>
+    </GDriveContext.Provider>
   );
 }
 

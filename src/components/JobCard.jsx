@@ -1,5 +1,5 @@
 import { memo, useMemo, useCallback } from 'react';
-import { TrashIcon, PencilSquareIcon, ChevronUpDownIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { TrashIcon, PencilSquareIcon, ChevronUpDownIcon, CalendarIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 import { STAGES, STAGE_COLORS } from '../constants.js';
 import { Badge } from './catalyst';
@@ -7,6 +7,7 @@ import useInlineEdit from '../hooks/useInlineEdit.js';
 import InlineEditableField from './InlineEditableField.jsx';
 import ResumeSourceIcon from './ResumeSourceIcon.jsx';
 import { formatDate, isOverdue } from '../utils/formatDate.js';
+import { isSafeHttpUrl } from '../utils/normalizeUrl.js';
 
 export default memo(function JobCard({ job, onUpdate, onDelete, onEdit, onDragStart, compact, onStageChange, onViewResume, resumeName, resumeSource }) {
   const { editingField, draftValue, startEdit, updateDraft, cancel, save } = useInlineEdit();
@@ -59,6 +60,7 @@ export default memo(function JobCard({ job, onUpdate, onDelete, onEdit, onDragSt
       className={`flex-1 min-w-0 flex flex-col m-px rounded-lg bg-zinc-50 dark:bg-zinc-800 p-4 pt-2.5 shadow-sm ring-1 ring-zinc-950/5 dark:ring-white/10 hover:ring-zinc-950/10 dark:hover:ring-white/15 transition-all ${!isEditing && onDragStart ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
       <div className="flex items-start justify-end gap-2">
+        {job.archivedAt && <Badge color="zinc">Archived</Badge>}
         {!compact && !onStageChange && (
           <InlineEditableField
             value={job.stage}
@@ -254,6 +256,20 @@ export default memo(function JobCard({ job, onUpdate, onDelete, onEdit, onDragSt
           <ResumeSourceIcon source={resumeSource} className="size-3.5 shrink-0" />
           <span className="truncate">{resumeName || 'Resume'}</span>
         </button>
+      )}
+
+      {isSafeHttpUrl(job.postingUrl) && (
+        <a
+          href={job.postingUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-mauve-600 dark:text-mauve-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+          title="Open job posting"
+        >
+          <ArrowTopRightOnSquareIcon className="size-3.5 shrink-0" />
+          <span className="truncate">Job posting</span>
+        </a>
       )}
 
       <div className="mt-auto flex items-center justify-end gap-1 border-t border-zinc-950/5 dark:border-white/5 pt-2">

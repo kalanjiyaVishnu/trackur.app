@@ -3,7 +3,7 @@ import { Field, FieldGroup, Label, Input, Select, Textarea } from './catalyst';
 import { CHAR_LIMITS } from '../constants.js';
 import ResumePickerSection from './ResumePickerSection.jsx';
 
-export default function JobFormFields({ values, onChange, resumes = [], onUploadResume, gdriveEnabled, gdriveConnected, onConnectGdrive, onPickFromDrive }) {
+export default function JobFormFields({ values, onChange, resumes = [], onUploadResume }) {
   const field = (name) => ({
     value: values[name] || '',
     onChange: (e) => onChange(name, e.target.value),
@@ -60,12 +60,15 @@ export default function JobFormFields({ values, onChange, resumes = [], onUpload
         onChange={(v) => onChange('resumeId', v)}
         resumes={resumes}
         onUploadResume={onUploadResume}
-        gdriveEnabled={gdriveEnabled}
-        gdriveConnected={gdriveConnected}
-        onConnectGdrive={onConnectGdrive}
-        onPickFromDrive={onPickFromDrive}
         removeLabel="Clear selection"
       />
+
+      <Field>
+        <Label>Job Posting URL</Label>
+        {/* type="text": browser url validation would block submit for bare
+            domains; AddJobForm normalizes missing protocols on submit instead */}
+        <Input type="text" inputMode="url" placeholder="https://..." {...field('postingUrl')} />
+      </Field>
 
       <Field>
         <Label>Notes</Label>

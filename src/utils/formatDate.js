@@ -30,3 +30,17 @@ export function isOverdue(dateStr) {
   today.setHours(0, 0, 0, 0);
   return due < today;
 }
+
+/**
+ * Whether a YYYY-MM-DD date string is today or earlier (user-local).
+ * Returns false for empty or unparseable values.
+ */
+export function isDueOrOverdue(dateStr) {
+  if (!dateStr) return false;
+  const [year, month, day] = dateStr.split('-');
+  if (!year || !month || !day) return false;
+  const due = new Date(+year, +month - 1, +day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return due <= today;
+}

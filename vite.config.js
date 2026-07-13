@@ -12,4 +12,13 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
+  test: {
+    environment: 'jsdom',
+    // Dummy values so importing src/services/supabase.js doesn't throw in
+    // tests; no test ever talks to a real backend.
+    env: {
+      VITE_SUPABASE_URL: 'http://localhost:54321',
+      VITE_SUPABASE_ANON_KEY: 'test-anon-key',
+    },
+  },
 })

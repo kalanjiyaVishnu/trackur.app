@@ -4,20 +4,23 @@ import { ArrowDownTrayIcon, ArrowUpTrayIcon, ArchiveBoxXMarkIcon, DocumentCheckI
 import { Button } from './catalyst';
 import ResumeListbox from './ResumeListbox.jsx';
 import { downloadResume, downloadErrorMessage } from '../utils/downloadResume.js';
+import { useGDriveContext } from '../context/GDriveContext.js';
 
 export default function ResumePickerSection({
   value,
   onChange,
   resumes = [],
   onUploadResume,
-  gdriveEnabled,
-  gdriveConnected,
-  onConnectGdrive,
-  onPickFromDrive,
   onGetDownloadUrl,
   onManageResumes,
   removeLabel = 'Remove From Job',
 }) {
+  const {
+    enabled: gdriveEnabled,
+    connected: gdriveConnected,
+    connect: onConnectGdrive,
+    pickFromDrive: onPickFromDrive,
+  } = useGDriveContext();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [downloadError, setDownloadError] = useState(null);

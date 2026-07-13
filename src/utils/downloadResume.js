@@ -9,9 +9,13 @@
  *
  * Throws on failure — callers surface errors via `downloadErrorMessage`.
  */
-export async function downloadResume(resume, getDownloadUrl) {
+export function downloadFilename(resume) {
   const ext = resume.filename.split('.').pop();
-  const filename = resume.label ? `${resume.label}.${ext}` : resume.filename;
+  return resume.label ? `${resume.label}.${ext}` : resume.filename;
+}
+
+export async function downloadResume(resume, getDownloadUrl) {
+  const filename = downloadFilename(resume);
 
   let objUrl;
   if (resume.source === 'gdrive') {

@@ -4,13 +4,20 @@ import { XMarkIcon, ArrowUpTrayIcon, EllipsisVerticalIcon, PencilIcon, ArrowDown
 import { Button } from './catalyst';
 import ResumeSourceIcon from './ResumeSourceIcon.jsx';
 import { downloadResume, downloadErrorMessage } from '../utils/downloadResume.js';
+import { useGDriveContext } from '../context/GDriveContext.js';
 
 function formatFileSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   return Math.round(bytes / 1024) + ' KB';
 }
 
-export default function ResumesModal({ open, onClose, resumes = [], onUploadResume, onRenameResume, onDeleteResume, onGetDownloadUrl, gdriveEnabled, gdriveConnected, onConnectGdrive, onPickFromDrive }) {
+export default function ResumesModal({ open, onClose, resumes = [], onUploadResume, onRenameResume, onDeleteResume, onGetDownloadUrl }) {
+  const {
+    enabled: gdriveEnabled,
+    connected: gdriveConnected,
+    connect: onConnectGdrive,
+    pickFromDrive,
+  } = useGDriveContext();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [downloadError, setDownloadError] = useState(null);
@@ -332,7 +339,7 @@ export default function ResumesModal({ open, onClose, resumes = [], onUploadResu
                             )}
 
                             {!isDisconnected && (
-                              <Button outline onClick={onPickFromDrive} className="w-full">
+                              <Button outline onClick={() => pickFromDrive(null)} className="w-full">
                                 Pick from Google Drive
                               </Button>
                             )}

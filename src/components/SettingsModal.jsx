@@ -5,8 +5,15 @@ import { Switch, SwitchField, Input, Field, Label, ErrorMessage } from './cataly
 import { Button } from './catalyst';
 import { CHAR_LIMITS } from '../constants.js';
 import profileService from '../services/profileService.js';
+import { useGDriveContext } from '../context/GDriveContext.js';
 
-export default function SettingsModal({ open, onClose, user, profile, refreshProfile, notificationsSupported, permissionState, requestPermission, gdriveEnabled, gdriveConnected, onConnectGdrive, onDisconnectGdrive }) {
+export default function SettingsModal({ open, onClose, user, profile, refreshProfile, notificationsSupported, permissionState, requestPermission }) {
+  const {
+    enabled: gdriveEnabled,
+    connected: gdriveConnected,
+    connect: onConnectGdrive,
+    disconnect: onDisconnectGdrive,
+  } = useGDriveContext();
   const [saving, setSaving] = useState(false);
 
   const profileNameValid = !!(profile?.firstName?.trim() && profile?.lastName?.trim());

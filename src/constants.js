@@ -33,4 +33,5 @@ export const CHAR_LIMITS = {
   todo: 150,
   email: 256,
   password: 256,
+  postingUrl: 500,
 };
