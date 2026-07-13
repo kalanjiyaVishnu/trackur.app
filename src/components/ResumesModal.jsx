@@ -3,15 +3,24 @@ import { Dialog, DialogBackdrop, Transition, TransitionChild, Menu, MenuButton, 
 import { XMarkIcon, ArrowUpTrayIcon, EllipsisVerticalIcon, PencilIcon, ArrowDownTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { Button } from './catalyst';
 import ResumeSourceIcon from './ResumeSourceIcon.jsx';
+import { downloadResume, downloadErrorMessage } from '../utils/downloadResume.js';
+import { useGDriveContext } from '../context/GDriveContext.js';
 
 function formatFileSize(bytes) {
   if (bytes < 1024) return bytes + ' B';
   return Math.round(bytes / 1024) + ' KB';
 }
 
-export default function ResumesModal({ open, onClose, resumes = [], onUploadResume, onRenameResume, onDeleteResume, onGetDownloadUrl, gdriveEnabled, gdriveConnected, onConnectGdrive, onPickFromDrive }) {
+export default function ResumesModal({ open, onClose, resumes = [], onUploadResume, onRenameResume, onDeleteResume, onGetDownloadUrl }) {
+  const {
+    enabled: gdriveEnabled,
+    connected: gdriveConnected,
+    connect: onConnectGdrive,
+    pickFromDrive,
+  } = useGDriveContext();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [downloadError, setDownloadError] = useState(null);
   const [editingLabelId, setEditingLabelId] = useState(null);
   const [editingLabelValue, setEditingLabelValue] = useState('');
   const fileInputRef = useRef(null);
@@ -44,36 +53,11 @@ export default function ResumesModal({ open, onClose, resumes = [], onUploadResu
 
   const handleDownload = useCallback(async (r) => {
     if (!onGetDownloadUrl) return;
+    setDownloadError(null);
     try {
-      const ext = r.filename.split('.').pop();
-      const filename = r.label ? `${r.label}.${ext}` : r.filename;
-
-      if (r.source === 'gdrive') {
-        // GDrive download returns a blob URL directly
-        const blobUrl = await onGetDownloadUrl(r);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      } else {
-        // Trackur (R2) — presigned URL flow
-        const url = await onGetDownloadUrl(r);
-        const resp = await fetch(url);
-        const blob = await resp.blob();
-        const objUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(objUrl);
-      }
-    } catch {
-      // silently fail
+      await downloadResume(r, onGetDownloadUrl);
+    } catch (err) {
+      setDownloadError(downloadErrorMessage(err));
     }
   }, [onGetDownloadUrl]);
 
@@ -144,6 +128,9 @@ export default function ResumesModal({ open, onClose, resumes = [], onUploadResu
 
                     {/* Body */}
                     <div className="flex-1 overflow-y-auto px-5 py-5">
+                      {downloadError && (
+                        <p className="text-xs text-red-500 mb-3 text-center">{downloadError}</p>
+                      )}
                       {resumes.filter((r) => r.source !== 'gdrive').length > 0 && (
                         <div className="space-y-2 mb-4">
                           {resumes.filter((r) => r.source !== 'gdrive').map((r) => (
@@ -352,7 +339,7 @@ export default function ResumesModal({ open, onClose, resumes = [], onUploadResu
                             )}
 
                             {!isDisconnected && (
-                              <Button outline onClick={onPickFromDrive} className="w-full">
+                              <Button outline onClick={() => pickFromDrive(null)} className="w-full">
                                 Pick from Google Drive
                               </Button>
                             )}

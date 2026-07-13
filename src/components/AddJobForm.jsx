@@ -3,6 +3,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { Button } from './catalyst';
 import JobFormFields from './JobFormFields.jsx';
 import SlideOutPanel from './SlideOutPanel.jsx';
+import { normalizeUrl } from '../utils/normalizeUrl.js';
 
 const EMPTY = {
   company: '',
@@ -13,9 +14,10 @@ const EMPTY = {
   firstStepDate: '',
   notes: '',
   resumeId: '',
+  postingUrl: '',
 };
 
-export default function AddJobForm({ onAdd, open, onClose, initialStage, resumes, onUploadResume, gdriveEnabled, gdriveConnected, onConnectGdrive, onPickFromDrive }) {
+export default function AddJobForm({ onAdd, open, onClose, initialStage, resumes, onUploadResume }) {
   const [values, setValues] = useState({ ...EMPTY });
   const prevOpenRef = useRef(false);
 
@@ -44,7 +46,7 @@ export default function AddJobForm({ onAdd, open, onClose, initialStage, resumes
         createdAt: new Date().toISOString(),
       });
     }
-    onAdd({ ...jobData, todos, resumeId: resumeId || null });
+    onAdd({ ...jobData, todos, resumeId: resumeId || null, postingUrl: normalizeUrl(jobData.postingUrl) });
     setValues({ ...EMPTY });
     onClose();
   };
@@ -71,10 +73,6 @@ export default function AddJobForm({ onAdd, open, onClose, initialStage, resumes
         onChange={handleChange}
         resumes={resumes}
         onUploadResume={onUploadResume}
-        gdriveEnabled={gdriveEnabled}
-        gdriveConnected={gdriveConnected}
-        onConnectGdrive={onConnectGdrive}
-        onPickFromDrive={onPickFromDrive}
       />
     </form>
   );

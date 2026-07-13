@@ -3,22 +3,27 @@ import { Menu, MenuButton, MenuItems, MenuItem } from '@headlessui/react';
 import { ArrowDownTrayIcon, ArrowUpTrayIcon, ArchiveBoxXMarkIcon, DocumentCheckIcon, EllipsisVerticalIcon } from '@heroicons/react/24/outline';
 import { Button } from './catalyst';
 import ResumeListbox from './ResumeListbox.jsx';
+import { downloadResume, downloadErrorMessage } from '../utils/downloadResume.js';
+import { useGDriveContext } from '../context/GDriveContext.js';
 
 export default function ResumePickerSection({
   value,
   onChange,
   resumes = [],
   onUploadResume,
-  gdriveEnabled,
-  gdriveConnected,
-  onConnectGdrive,
-  onPickFromDrive,
   onGetDownloadUrl,
   onManageResumes,
   removeLabel = 'Remove From Job',
 }) {
+  const {
+    enabled: gdriveEnabled,
+    connected: gdriveConnected,
+    connect: onConnectGdrive,
+    pickFromDrive: onPickFromDrive,
+  } = useGDriveContext();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [downloadError, setDownloadError] = useState(null);
   const fileInputRef = useRef(null);
 
   const trackurCount = resumes.filter((r) => r.source !== 'gdrive').length;
@@ -43,34 +48,11 @@ export default function ResumePickerSection({
   const handleDownload = useCallback(async () => {
     const resume = resumes.find((r) => r.id === value);
     if (!resume || !onGetDownloadUrl) return;
+    setDownloadError(null);
     try {
-      const ext = resume.filename.split('.').pop();
-      const filename = resume.label ? `${resume.label}.${ext}` : resume.filename;
-
-      if (resume.source === 'gdrive') {
-        const blobUrl = await onGetDownloadUrl(resume);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      } else {
-        const url = await onGetDownloadUrl(resume);
-        const resp = await fetch(url);
-        const blob = await resp.blob();
-        const objUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(objUrl);
-      }
-    } catch {
-      // silently fail
+      await downloadResume(resume, onGetDownloadUrl);
+    } catch (err) {
+      setDownloadError(downloadErrorMessage(err));
     }
   }, [resumes, value, onGetDownloadUrl]);
 
@@ -176,6 +158,7 @@ export default function ResumePickerSection({
         </div>
       )}
       {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
+      {downloadError && <p className="text-xs text-red-500 mt-1">{downloadError}</p>}
       <input
         ref={fileInputRef}
         type="file"

@@ -25,7 +25,7 @@ function saveCollapsed(collapsed) {
   localStorage.setItem(COLLAPSED_KEY, JSON.stringify(collapsed));
 }
 
-function MobileStageRow({ stage, stageJobs, onUpdate, onDelete, onEdit, onUpdateStage, onViewResume, resumes, collapsed, onToggleCollapse, onAddJob }) {
+function MobileStageRow({ stage, stageJobs, onUpdate, onDelete, onEdit, onUpdateStage, onViewResume, resumesById, collapsed, onToggleCollapse, onAddJob }) {
   const scrollRef = useRef(null);
   const [activeCard, setActiveCard] = useState(0);
 
@@ -94,21 +94,24 @@ function MobileStageRow({ stage, stageJobs, onUpdate, onDelete, onEdit, onUpdate
               ref={scrollRef}
               className="flex items-stretch gap-3 overflow-x-auto snap-x snap-mandatory pb-4 mt-2"
             >
-              {stageJobs.map((job) => (
-                <div key={job.id} className="shrink-0 w-[80%] min-w-52 snap-start grid">
-                  <JobCard
-                    job={job}
-                    onUpdate={onUpdate}
-                    onDelete={onDelete}
-                    onEdit={onEdit}
-                    onStageChange={onUpdateStage}
-                    onViewResume={onViewResume ? () => onViewResume(job) : undefined}
-                    resumeName={resumes?.find((r) => r.id === job.resumeId)?.label || resumes?.find((r) => r.id === job.resumeId)?.filename}
-                    resumeSource={resumes?.find((r) => r.id === job.resumeId)?.source}
-                    compact
-                  />
-                </div>
-              ))}
+              {stageJobs.map((job) => {
+                const resume = resumesById.get(job.resumeId);
+                return (
+                  <div key={job.id} className="shrink-0 w-[80%] min-w-52 snap-start grid">
+                    <JobCard
+                      job={job}
+                      onUpdate={onUpdate}
+                      onDelete={onDelete}
+                      onEdit={onEdit}
+                      onStageChange={onUpdateStage}
+                      onViewResume={onViewResume ? () => onViewResume(job) : undefined}
+                      resumeName={resume?.label || resume?.filename}
+                      resumeSource={resume?.source}
+                      compact
+                    />
+                  </div>
+                );
+              })}
             </div>
             {stageJobs.length > 1 && (
               <div className="flex justify-center gap-1.5 pt-1.5">
@@ -152,6 +155,11 @@ export default function KanbanBoard({ jobs, onUpdate, onDelete, onEdit, onUpdate
     return grouped;
   }, [jobs]);
 
+  const resumesById = useMemo(
+    () => new Map((resumes ?? []).map((r) => [r.id, r])),
+    [resumes]
+  );
+
   const handleDragStart = useCallback((e, jobId) => {
     e.dataTransfer.setData('text/plain', String(jobId));
     e.dataTransfer.effectAllowed = 'move';
@@ -192,7 +200,7 @@ export default function KanbanBoard({ jobs, onUpdate, onDelete, onEdit, onUpdate
             onEdit={onEdit}
             onUpdateStage={onUpdateStage}
             onViewResume={onViewResume}
-            resumes={resumes}
+            resumesById={resumesById}
             collapsed={!!collapsedStages[stage]}
             onToggleCollapse={() => toggleCollapse(stage)}
             onAddJob={onAddJob}
@@ -263,20 +271,23 @@ export default function KanbanBoard({ jobs, onUpdate, onDelete, onEdit, onUpdate
                 {stageJobs.length === 0 ? (
                   <p className="px-2 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400">No jobs</p>
                 ) : (
-                  stageJobs.map((job) => (
-                    <JobCard
-                      key={job.id}
-                      job={job}
-                      onUpdate={onUpdate}
-                      onDelete={onDelete}
-                      onEdit={onEdit}
-                      onDragStart={(e) => handleDragStart(e, job.id)}
-                      onViewResume={onViewResume ? () => onViewResume(job) : undefined}
-                      resumeName={resumes?.find((r) => r.id === job.resumeId)?.label || resumes?.find((r) => r.id === job.resumeId)?.filename}
-                      resumeSource={resumes?.find((r) => r.id === job.resumeId)?.source}
-                      compact
-                    />
-                  ))
+                  stageJobs.map((job) => {
+                    const resume = resumesById.get(job.resumeId);
+                    return (
+                      <JobCard
+                        key={job.id}
+                        job={job}
+                        onUpdate={onUpdate}
+                        onDelete={onDelete}
+                        onEdit={onEdit}
+                        onDragStart={(e) => handleDragStart(e, job.id)}
+                        onViewResume={onViewResume ? () => onViewResume(job) : undefined}
+                        resumeName={resume?.label || resume?.filename}
+                        resumeSource={resume?.source}
+                        compact
+                      />
+                    );
+                  })
                 )}
               </div>
             </div>

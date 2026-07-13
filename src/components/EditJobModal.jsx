@@ -1,26 +1,30 @@
 import { useState, useEffect } from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import { STAGES, STAGE_COLORS, CHAR_LIMITS } from '../constants.js';
 import { Badge, Button } from './catalyst';
 import useInlineEdit from '../hooks/useInlineEdit.js';
 import useTodos from '../hooks/useTodos.js';
+import useJobEvents from '../hooks/useJobEvents.js';
 import InlineEditableField from './InlineEditableField.jsx';
 import TodoList from './TodoList.jsx';
 import SlideOutPanel from './SlideOutPanel.jsx';
 import ResumePickerSection from './ResumePickerSection.jsx';
 import { formatDate } from '../utils/formatDate.js';
+import { normalizeUrl, isSafeHttpUrl } from '../utils/normalizeUrl.js';
 
 const FIELD_CONFIG = [
   { key: 'role', label: 'Role', required: true, placeholder: 'Job title', maxLength: CHAR_LIMITS.role },
   { key: 'company', label: 'Company', required: true, placeholder: 'Company name', maxLength: CHAR_LIMITS.company },
   { key: 'stage', label: 'Stage', inputType: 'select', selectOptions: STAGES },
   { key: 'dateApplied', label: 'Date Applied', inputType: 'date', placeholder: 'Set date' },
+  { key: 'postingUrl', label: 'Posting URL', placeholder: 'https://...', maxLength: CHAR_LIMITS.postingUrl },
   { key: 'notes', label: 'Notes', inputType: 'textarea', placeholder: 'Add notes...', maxLength: CHAR_LIMITS.notes },
 ];
 
-export default function EditJobModal({ job, onUpdate, onDelete, onClose, resumes = [], onGetDownloadUrl, onUploadResume, onManageResumes, gdriveEnabled, gdriveConnected, onConnectGdrive, onPickFromDrive }) {
+export default function EditJobModal({ job, onUpdate, onDelete, onClose, resumes = [], onGetDownloadUrl, onUploadResume, onManageResumes }) {
   const { editingField, draftValue, startEdit, updateDraft, cancel, save } = useInlineEdit();
   const { todos, addTodo, toggleTodo, removeTodo, updateTodo } = useTodos(job, onUpdate);
+  const { events } = useJobEvents(job?.id, job?.stage);
   const [fieldError, setFieldError] = useState(null);
 
   useEffect(() => {
@@ -42,7 +46,7 @@ export default function EditJobModal({ job, onUpdate, onDelete, onClose, resumes
         return;
       }
     }
-    onUpdate(job.id, { [field]: value });
+    onUpdate(job.id, { [field]: field === 'postingUrl' ? normalizeUrl(value) : value });
   };
 
   const handleBlur = () => {
@@ -51,6 +55,11 @@ export default function EditJobModal({ job, onUpdate, onDelete, onClose, resumes
 
   const handleDelete = () => {
     onDelete(job.id);
+    onClose();
+  };
+
+  const handleArchiveToggle = () => {
+    onUpdate(job.id, { archivedAt: job.archivedAt ? null : new Date().toISOString() });
     onClose();
   };
 
@@ -66,9 +75,22 @@ export default function EditJobModal({ job, onUpdate, onDelete, onClose, resumes
         : undefined;
 
     return (
-      <div key={key} className={key === 'notes' ? 'col-span-full' : ''}>
-        <div className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
-          {label}
+      <div key={key} className={key === 'notes' || key === 'postingUrl' ? 'col-span-full' : ''}>
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            {label}
+          </div>
+          {key === 'postingUrl' && isSafeHttpUrl(job.postingUrl) && (
+            <a
+              href={job.postingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium text-mauve-600 dark:text-mauve-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+            >
+              Open
+              <ArrowTopRightOnSquareIcon className="size-3.5" />
+            </a>
+          )}
         </div>
         <InlineEditableField
           value={job[key]}
@@ -143,10 +165,6 @@ export default function EditJobModal({ job, onUpdate, onDelete, onClose, resumes
           onChange={(v) => onUpdate(job.id, { resumeId: v })}
           resumes={resumes}
           onUploadResume={onUploadResume}
-          gdriveEnabled={gdriveEnabled}
-          gdriveConnected={gdriveConnected}
-          onConnectGdrive={onConnectGdrive}
-          onPickFromDrive={onPickFromDrive}
           onGetDownloadUrl={onGetDownloadUrl}
           onManageResumes={onManageResumes}
           removeLabel="Remove From Job"
@@ -154,13 +172,38 @@ export default function EditJobModal({ job, onUpdate, onDelete, onClose, resumes
       </div>
 
       {FIELD_CONFIG.filter((c) => c.key === 'notes').map(renderField)}
+
+      {events.length > 0 && (
+        <div className="col-span-full">
+          <div className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-1.5">
+            History
+          </div>
+          <ol className="space-y-1.5">
+            {[...events].reverse().map((e) => (
+              <li key={e.id} className="flex items-center justify-between gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                <span className="min-w-0 truncate">
+                  {e.fromStage ? `${e.fromStage} → ${e.toStage}` : `Created in ${e.toStage}`}
+                </span>
+                <span className="shrink-0 text-zinc-400 dark:text-zinc-500">
+                  {formatDate(e.createdAt.slice(0, 10))}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
     </div>
   );
 
   const footer = (
-    <Button color="red" className="w-full hover:bg-red-700" onClick={handleDelete}>
-      Delete Job
-    </Button>
+    <div className="flex items-center gap-2">
+      <Button outline className="flex-1" onClick={handleArchiveToggle}>
+        {job.archivedAt ? 'Unarchive Job' : 'Archive Job'}
+      </Button>
+      <Button color="red" className="flex-1 hover:bg-red-700" onClick={handleDelete}>
+        Delete Job
+      </Button>
+    </div>
   );
 
   return (

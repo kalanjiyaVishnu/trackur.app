@@ -1,4 +1,10 @@
-import { Squares2X2Icon, TableCellsIcon } from '@heroicons/react/24/outline';
+import { Squares2X2Icon, TableCellsIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+
+const VIEWS = [
+  { key: 'board', label: 'Board', Icon: Squares2X2Icon },
+  { key: 'table', label: 'Table', Icon: TableCellsIcon },
+  { key: 'stats', label: 'Stats', Icon: ChartBarIcon },
+];
 
 export default function ViewToggle({ view, onViewChange }) {
   const base = 'inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors';
@@ -7,22 +13,17 @@ export default function ViewToggle({ view, onViewChange }) {
 
   return (
     <div className="inline-flex gap-1 rounded-lg border border-zinc-950/10 dark:border-white/10 p-0.5 bg-white dark:bg-zinc-800">
-      <button
-        type="button"
-        onClick={() => onViewChange('board')}
-        className={`${base} ${view === 'board' ? active : inactive}`}
-      >
-        <Squares2X2Icon className="h-4 w-4" />
-        Board
-      </button>
-      <button
-        type="button"
-        onClick={() => onViewChange('table')}
-        className={`${base} ${view === 'table' ? active : inactive}`}
-      >
-        <TableCellsIcon className="h-4 w-4" />
-        Table
-      </button>
+      {VIEWS.map(({ key, label, Icon }) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => onViewChange(key)}
+          className={`${base} ${view === key ? active : inactive}`}
+        >
+          <Icon className="h-4 w-4" />
+          {label}
+        </button>
+      ))}
     </div>
   );
 }

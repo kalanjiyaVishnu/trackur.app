@@ -1,9 +1,47 @@
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// OAuth `state` is HMAC-signed so the callback can trust the userId inside it.
+// Keyed off GOOGLE_CLIENT_SECRET — already required for this flow, never sent
+// to the client, so no extra env var is needed.
+const STATE_MAX_AGE_MS = 10 * 60 * 1000;
+
+function signStatePayload(payload) {
+  return createHmac('sha256', GOOGLE_CLIENT_SECRET).update(payload).digest('base64url');
+}
+
+/**
+ * Create a signed OAuth state token binding the flow to a user.
+ */
+export function createState(userId) {
+  const payload = Buffer.from(JSON.stringify({ userId, ts: Date.now() })).toString('base64url');
+  return `${payload}.${signStatePayload(payload)}`;
+}
+
+/**
+ * Verify a state token's signature and freshness.
+ * @returns {string|null} the userId, or null if invalid/expired
+ */
+export function verifyState(state) {
+  if (typeof state !== 'string') return null;
+  const [payload, sig] = state.split('.');
+  if (!payload || !sig) return null;
+  const expected = Buffer.from(signStatePayload(payload));
+  const actual = Buffer.from(sig);
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;
+  try {
+    const { userId, ts } = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    if (!userId || typeof ts !== 'number' || Date.now() - ts > STATE_MAX_AGE_MS) return null;
+    return userId;
+  } catch {
+    return null;
+  }
+}
 
 // Service role client — bypasses RLS, used only server-side for gdrive_tokens
 let _serviceClient;

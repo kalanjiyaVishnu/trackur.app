@@ -1,7 +1,8 @@
 import { supabase } from './supabase.js';
 
 // Map DB snake_case row to app camelCase object
-function toApp(row) {
+// (exported for unit tests)
+export function toApp(row) {
   return {
     id: row.id,
     company: row.company,
@@ -11,11 +12,14 @@ function toApp(row) {
     todos: row.todos ?? [],
     notes: row.notes ?? '',
     resumeId: row.resume_id ?? null,
+    postingUrl: row.posting_url ?? '',
+    archivedAt: row.archived_at ?? null,
   };
 }
 
 // Map app camelCase object to DB snake_case row
-function toDb(job) {
+// (exported for unit tests)
+export function toDb(job) {
   const row = {
     company: job.company,
     role: job.role,
@@ -24,9 +28,21 @@ function toDb(job) {
     todos: job.todos ?? [],
     notes: job.notes || null,
     resume_id: job.resumeId ?? null,
+    posting_url: job.postingUrl || null,
+    archived_at: job.archivedAt ?? null,
   };
   if (job.id) row.id = job.id;
   return row;
+}
+
+function eventToApp(row) {
+  return {
+    id: row.id,
+    jobId: row.job_id,
+    fromStage: row.from_stage,
+    toStage: row.to_stage,
+    createdAt: row.created_at,
+  };
 }
 
 const supabaseAdapter = {
@@ -111,6 +127,26 @@ const supabaseAdapter = {
 
   async exportAll() {
     return this.getAll();
+  },
+
+  // Stage history (job_events rows are written by a DB trigger; read-only here)
+  async getJobEvents(jobId) {
+    const { data, error } = await supabase
+      .from('job_events')
+      .select('*')
+      .eq('job_id', jobId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return data.map(eventToApp);
+  },
+
+  async getAllJobEvents() {
+    const { data, error } = await supabase
+      .from('job_events')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return data.map(eventToApp);
   },
 };
 

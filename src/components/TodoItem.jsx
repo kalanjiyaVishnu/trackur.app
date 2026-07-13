@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { XMarkIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { CHAR_LIMITS } from '../constants.js';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
-import { formatDate } from '../utils/formatDate.js';
+import { formatDate, isOverdue } from '../utils/formatDate.js';
 
 export default function TodoItem({ todo, onToggle, onRemove, onUpdate }) {
   const [editingText, setEditingText] = useState(false);
@@ -123,7 +123,9 @@ export default function TodoItem({ todo, onToggle, onRemove, onUpdate }) {
             className={`mt-0.5 inline-flex items-center gap-1 text-xs ${
               todo.completed
                 ? 'text-zinc-500 dark:text-zinc-400'
-                : 'text-zinc-500 dark:text-zinc-400 hover:text-violet-600 dark:hover:text-violet-400'
+                : isOverdue(todo.dueDate)
+                  ? 'text-red-600 dark:text-red-400 font-medium hover:text-violet-600 dark:hover:text-violet-400'
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-violet-600 dark:hover:text-violet-400'
             }`}
           >
             <CalendarIcon className="size-3" />

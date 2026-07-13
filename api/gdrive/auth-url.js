@@ -1,5 +1,5 @@
 import { verifyAuth } from '../_lib/auth.js';
-import { getAuthUrl } from '../_lib/google.js';
+import { createState, getAuthUrl } from '../_lib/google.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   const redirectUri = `${protocol}://${host}/api/gdrive/callback`;
 
-  const state = JSON.stringify({ userId, ts: Date.now() });
+  const state = createState(userId);
   const url = getAuthUrl(redirectUri, state);
 
   return res.status(200).json({ url });
