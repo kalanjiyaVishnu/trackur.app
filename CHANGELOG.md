@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.0](https://github.com/emanuel-gold/trackur.app/compare/trackur-v1.1.0...trackur-v1.2.0) (2026-07-12)
+
+
+### Features
+
+* adding app version number to Settings Modal via Vite define ([ab6fb18](https://github.com/emanuel-gold/trackur.app/commit/ab6fb18145d6a7a46b532cff216016acd2587c00))
+* implemented editable name change fields to allow name edits in Settings menu ([f632715](https://github.com/emanuel-gold/trackur.app/commit/f632715a56086d2ee94d9819849187aad24ed76f))
+
+
+### Bug Fixes
+
+* increasing size of pencil icon on editable fields ([4656533](https://github.com/emanuel-gold/trackur.app/commit/46565331e123fb878ffa9d93de6d15867c7e3306))
+
 ## [1.1.0](https://github.com/emanuel-gold/trackur.app/compare/trackur-v1.0.0...trackur-v1.1.0) (2026-04-24)
 
 
