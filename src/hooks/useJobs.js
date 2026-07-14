@@ -55,9 +55,9 @@ export default function useJobs(userId) {
   }, []);
 
   const importJobs = useCallback(async (newJobs) => {
-    const merged = await jobRepository.saveAll(newJobs);
+    const { jobs: merged, inserted } = await jobRepository.saveAll(newJobs);
     setJobs(merged);
-    return merged.length;
+    return { inserted, total: merged.length };
   }, []);
 
   const replaceAllJobs = useCallback(async (newJobs) => {

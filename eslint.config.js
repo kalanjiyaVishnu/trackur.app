@@ -6,7 +6,8 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // docs.trackur.app is an independent nested repo with its own tooling
+  globalIgnores(['dist', 'docs.trackur.app']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

@@ -25,3 +25,6 @@ dist-ssr
 *.sw?
 .vercel
 todo*
+
+# Playwright MCP browser artifacts
+.playwright-mcp/

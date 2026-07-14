@@ -27,9 +27,10 @@ const localStorageAdapter = {
   async saveAll(newJobs) {
     const existing = await this.getAll();
     const existingIds = new Set(existing.map((j) => j.id));
-    const merged = [...existing, ...newJobs.filter((j) => !existingIds.has(j.id))];
+    const toInsert = newJobs.filter((j) => !existingIds.has(j.id));
+    const merged = [...existing, ...toInsert];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-    return merged;
+    return { jobs: merged, inserted: toInsert.length };
   },
 
   async replaceAll(jobs) {

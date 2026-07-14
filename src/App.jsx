@@ -126,8 +126,14 @@ function App() {
 
   const handleImport = useCallback(async (newJobs) => {
     try {
-      const total = await importJobs(newJobs);
-      showToast(`Merged ${newJobs.length} job${newJobs.length !== 1 ? 's' : ''} (${total} total)`);
+      const { inserted, total } = await importJobs(newJobs);
+      const skipped = newJobs.length - inserted;
+      if (inserted === 0) {
+        showToast(`No new jobs imported — all ${newJobs.length} row${newJobs.length !== 1 ? 's' : ''} already exist (${total} total)`);
+      } else {
+        const skippedNote = skipped > 0 ? `, ${skipped} duplicate${skipped !== 1 ? 's' : ''} skipped` : '';
+        showToast(`Imported ${inserted} new job${inserted !== 1 ? 's' : ''}${skippedNote} (${total} total)`);
+      }
     } catch (err) {
       showToast('Failed to import jobs: ' + err.message, 'error');
     }

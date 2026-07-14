@@ -102,7 +102,7 @@ const supabaseAdapter = {
       const { error } = await supabase.from('jobs').insert(rows);
       if (error) throw error;
     }
-    return this.getAll();
+    return { jobs: await this.getAll(), inserted: toInsert.length };
   },
 
   async replaceAll(jobs) {
