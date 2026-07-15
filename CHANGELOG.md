@@ -1,5 +1,53 @@
 # Changelog
 
+## [2.0.0](https://github.com/emanuel-gold/trackur.app/compare/trackur-v1.2.0...v2.0.0) (2026-07-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* Job saves now send `posting_url` and `archived_at`, so the schema changes versioned in `supabase/migrations/` must be applied **before** deploying this release — saves fail against a database without those columns.
+
+### Features
+
+* stage history: `job_events` table written by a security-definer DB trigger, capturing drag-drop, edit panel, and CSV imports alike; read-only History timeline in EditJobModal ([45726a8](https://github.com/emanuel-gold/trackur.app/commit/45726a866c12430635e2d784374aa65430035fce))
+* stats view (third view toggle): KPI tiles, applications-per-week SVG chart, stage distribution, average time-in-stage from `job_events` ([45726a8](https://github.com/emanuel-gold/trackur.app/commit/45726a866c12430635e2d784374aa65430035fce))
+* archive: archive/unarchive in EditJobModal, archived jobs hidden by default with a toolbar/overflow toggle to view them ([45726a8](https://github.com/emanuel-gold/trackur.app/commit/45726a866c12430635e2d784374aa65430035fce))
+* due-date surfacing: amber "N due" toolbar pill that filters to jobs with steps due today or earlier ([45726a8](https://github.com/emanuel-gold/trackur.app/commit/45726a866c12430635e2d784374aa65430035fce))
+* posting URL: field in Add/Edit (bare domains auto-prefixed `https://`), link-out on cards, CSV column; links render only for http(s) URLs ([45726a8](https://github.com/emanuel-gold/trackur.app/commit/45726a866c12430635e2d784374aa65430035fce))
+* optimistic job mutations: `updateJob`/`deleteJob` apply locally first, roll back and rethrow on failure ([45726a8](https://github.com/emanuel-gold/trackur.app/commit/45726a866c12430635e2d784374aa65430035fce))
+* "No jobs match" empty state with a Clear filters button when filters yield zero results ([db49bc7](https://github.com/emanuel-gold/trackur.app/commit/db49bc7ce632e2762820f57b17ffe486627a30a9))
+* overdue todo due dates render red on cards, table, and edit panel ([db49bc7](https://github.com/emanuel-gold/trackur.app/commit/db49bc7ce632e2762820f57b17ffe486627a30a9))
+
+
+### Security
+
+* HMAC-sign OAuth state (keyed off `GOOGLE_CLIENT_SECRET`) and verify signature + 10-min freshness in the gdrive callback; `postMessage` now targets the app origin instead of the wildcard; error page escapes HTML ([db49bc7](https://github.com/emanuel-gold/trackur.app/commit/db49bc7ce632e2762820f57b17ffe486627a30a9))
+* resume upload hardening: magic-byte validation (PDF/DOCX signatures), server-side 10-file limit via R2 prefix count, oversized bodies aborted while streaming ([db49bc7](https://github.com/emanuel-gold/trackur.app/commit/db49bc7ce632e2762820f57b17ffe486627a30a9))
+* JWT verification now validates issuer + audience, not just signature/expiry ([db49bc7](https://github.com/emanuel-gold/trackur.app/commit/db49bc7ce632e2762820f57b17ffe486627a30a9))
+* security headers in `vercel.json`: CSP frame-ancestors, X-Frame-Options, nosniff, Referrer-Policy, HSTS, Permissions-Policy ([db49bc7](https://github.com/emanuel-gold/trackur.app/commit/db49bc7ce632e2762820f57b17ffe486627a30a9))
+
+
+### Bug Fixes
+
+* extract shared `downloadResume` util, replacing 3 duplicated copies; download errors now surface inline instead of failing silently ([db49bc7](https://github.com/emanuel-gold/trackur.app/commit/db49bc7ce632e2762820f57b17ffe486627a30a9))
+* add top-level ErrorBoundary so render errors no longer white-screen the app ([db49bc7](https://github.com/emanuel-gold/trackur.app/commit/db49bc7ce632e2762820f57b17ffe486627a30a9))
+
+
+### Performance Improvements
+
+* memoize per-card resume lookups in KanbanBoard (Map instead of repeated `.find` scans) ([db49bc7](https://github.com/emanuel-gold/trackur.app/commit/db49bc7ce632e2762820f57b17ffe486627a30a9))
+
+
+### Code Refactoring
+
+* `GDriveContext` replaces the 4 gdrive props drilled through AddJobForm, JobFormFields, EditJobModal, ResumesModal, SettingsModal, and ResumePickerSection ([45726a8](https://github.com/emanuel-gold/trackur.app/commit/45726a866c12430635e2d784374aa65430035fce))
+* App.jsx state extracted into `useJobFilters` (search/stage/due/archived filters + persisted table sort) and `useModals` hooks ([45726a8](https://github.com/emanuel-gold/trackur.app/commit/45726a866c12430635e2d784374aa65430035fce))
+
+
+### Tests
+
+* Vitest bootstrap (`npm test`): 32 tests over csvService escaping/parsing/round-trips, `toApp`/`toDb` mappers, download filename, URL normalization ([45726a8](https://github.com/emanuel-gold/trackur.app/commit/45726a866c12430635e2d784374aa65430035fce))
+
 ## [1.2.0](https://github.com/emanuel-gold/trackur.app/compare/trackur-v1.1.0...trackur-v1.2.0) (2026-07-12)
 
 

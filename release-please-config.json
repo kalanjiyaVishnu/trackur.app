@@ -3,6 +3,7 @@
     ".": {
       "release-type": "node",
       "package-name": "trackur",
+      "include-component-in-tag": false,
       "pull-request-header": "Automated Release"
     }
   }
