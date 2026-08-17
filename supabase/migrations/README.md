@@ -17,7 +17,10 @@ Two ways to apply:
    `supabase db push` applies any migrations the database hasn't seen yet
    and records them in a `supabase_migrations` table.
 
-Note: this folder only covers changes from July 2026 onward. The base schema
-(`jobs`, `resumes`, `gdrive_tokens`, `profiles` tables and their RLS policies)
-predates it — worth back-filling into a `00000000000000_baseline.sql` by
-running `supabase db dump` someday.
+Note: `00000000000000_baseline.sql` holds the base schema (`profiles`,
+`resumes`, `jobs`, `gdrive_tokens` and their RLS policies), which predates this
+folder. It was **reconstructed from the application code**, not dumped from the
+original database — column names and types are pinned by `src/services/*.js`
+and `api/_lib/google.js`, but nullability, defaults and constraints are
+inferences. If you still have access to the original project, replace it with a
+real `supabase db dump`.
