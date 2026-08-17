@@ -1,5 +1,7 @@
 export const MAX_TODOS = 10;
 
+export const MAX_FOLLOWUPS = 50;
+
 export const STAGES = [
   'Opportunity',
   'Applied',
@@ -28,10 +30,16 @@ export const CHAR_LIMITS = {
   company: 100,
   role: 100,
   jobTitle: 100,
-  notes: 250,
+  // Notes are markdown — long enough for real write-ups, still bounded so a
+  // paste-bomb can't blow up the row or the editor.
+  notes: 20000,
   search: 250,
   todo: 150,
   email: 256,
   password: 256,
   postingUrl: 500,
+  pocName: 100,
+  pocRole: 100,
+  pocEmail: 256,
+  conversation: 5000,
 };

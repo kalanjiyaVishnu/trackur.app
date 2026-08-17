@@ -8,6 +8,7 @@ import InlineEditableField from './InlineEditableField.jsx';
 import ResumeSourceIcon from './ResumeSourceIcon.jsx';
 import { formatDate, isOverdue } from '../utils/formatDate.js';
 import { isSafeHttpUrl } from '../utils/normalizeUrl.js';
+import { markdownToPreview } from '../utils/markdownPreview.js';
 
 export default memo(function JobCard({ job, onUpdate, onDelete, onEdit, onDragStart, compact, onStageChange, onViewResume, resumeName, resumeSource }) {
   const { editingField, draftValue, startEdit, updateDraft, cancel, save } = useInlineEdit();
@@ -242,7 +243,7 @@ export default memo(function JobCard({ job, onUpdate, onDelete, onEdit, onDragSt
           inputType="textarea"
           placeholder="Add notes"
           multiline
-          displayRender={(val) => val ? <span className="line-clamp-2">{val}</span> : null}
+          displayRender={(val) => val ? <span className="line-clamp-2">{markdownToPreview(val)}</span> : null}
         />
       </div>
 

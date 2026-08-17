@@ -74,14 +74,15 @@ export default function JobFormFields({ values, onChange, resumes = [], onUpload
         <Label>Notes</Label>
         <Textarea rows={3} resizable={false} maxLength={CHAR_LIMITS.notes} placeholder="Add a link to the job description, questions to ask, or anything else." {...field('notes')} />
         {(() => {
+          // Notes hold markdown and the cap is now high enough that a permanent
+          // counter is just noise — only surface it as the limit gets close.
           const len = (values.notes || '').length;
+          if (len < CHAR_LIMITS.notes * 0.9) return null;
           const remaining = CHAR_LIMITS.notes - len;
-          const color = remaining <= 15
+          const color = remaining <= 100
             ? 'text-red-500 dark:text-red-400'
-            : len >= CHAR_LIMITS.notes * 0.75
-              ? 'text-yellow-500 dark:text-yellow-400'
-              : 'text-zinc-500 dark:text-zinc-400';
-          return <span className={`text-xs ${color}`}>{len}/{CHAR_LIMITS.notes}</span>;
+            : 'text-yellow-500 dark:text-yellow-400';
+          return <span className={`text-xs ${color}`}>{len.toLocaleString()}/{CHAR_LIMITS.notes.toLocaleString()}</span>;
         })()}
       </Field>
     </FieldGroup>
